@@ -533,7 +533,7 @@ function pendingTasks(){return TASKS.filter(function(t){return !state.done[t.id]
 
 /* ============ Audio ============ */
 var AKEYS=[];WORDS.forEach(function(w){AKEYS.push(w.k);AKEYS.push('ayat_'+w.k);});
-var SONG='audiojom_jaga_alam.mp3';
+var SONG='jom_jaga_alam';
 var AUD={url:{},st:{}};
 function audioReady(k){return !!AUD.url[k];}
 function nrm(n){return n.toLowerCase().replace(/\.[a-z0-9]+$/,'').replace(/[\s\-]+/g,'_');}
@@ -543,15 +543,40 @@ var DB={
  all:function(){return DB.open().then(function(d){return new Promise(function(res,rej){var out={},t=d.transaction('f','readonly'),c=t.objectStore('f').openCursor();c.onsuccess=function(){var cur=c.result;if(cur){out[cur.key]=cur.value;cur.continue();}else res(out);};c.onerror=function(){rej(c.error);};});});},
  clear:function(){return DB.open().then(function(d){return new Promise(function(res,rej){var t=d.transaction('f','readwrite');t.objectStore('f').clear();t.oncomplete=res;t.onerror=function(){rej(t.error);};});});}
 };
-function probe(k){return new Promise(function(r){var a=new Audio(),done=false;function fin(ok){if(done)return;done=true;a.onerror=null;a.onloadedmetadata=null;r(ok);}a.preload='metadata';a.onloadedmetadata=function(){fin(true);};a.onerror=function(){fin(false);};setTimeout(function(){fin(false);},6000);a.src='audio/'+k+'.mp3';});}
+function audioFile(k){
+  if(k==='mengitar_semula') return 'mengitar semula';
+  if(k==='ayat_mengitar_semula') return 'ayat_mengitar semula';
+  return k;
+}
+function probe(k){
+  return new Promise(function(r){
+    var a=new Audio();
+    var done=false;
+
+    function fin(ok){
+      if(done)return;
+      done=true;
+      a.onerror=null;
+      a.onloadedmetadata=null;
+      r(ok);
+    }
+
+    a.preload='metadata';
+    a.onloadedmetadata=function(){fin(true);};
+    a.onerror=function(){fin(false);};
+    a.src='audio/'+encodeURIComponent(audioFile(k))+'.mp3';
+
+    setTimeout(function(){fin(false);},6000);
+  });
+}
 function initAudio(){
  AKEYS.concat([SONG]).forEach(function(k){AUD.st[k]='checking';});
  var userFirst=DB.all().catch(function(){return {};});
  userFirst.then(function(blobs){
   Object.keys(blobs).forEach(function(k){try{AUD.url[k]=URL.createObjectURL(blobs[k]);AUD.st[k]='ready';AUD.user=AUD.user||{};AUD.user[k]=true;}catch(e){}});
   refreshAudio();
-  return Promise.all(AKEYS.concat([SONG]).filter(function(k){return !AUD.url[k];}).map(function(k){return probe(k).then(function(ok){if(ok){AUD.url[k]='audio/'+k+'.mp3';AUD.st[k]='ready';}else AUD.st[k]='missing';refreshAudio();});}));
- });
+  return Promise.all(AKEYS.concat([SONG]).filter(function(k){return !AUD.url[k];}).map(function(k){return 
+probe(k).then(function(ok){if(ok){AUD.url[k]='audio/'+encodeURIComponent(audioFile(k))+'.mp3';AUD.st[k]='ready';}else AUD.st[k]='missing';refreshAudio();});
 }
 var player=new Audio(),curBtn=null;
 player.onended=function(){if(curBtn)curBtn.classList.remove('playing');};
@@ -658,9 +683,9 @@ PAGES[6]={t:'Dengar dan Sebut',html:function(){
 }};
 PAGES[7]={t:'Jom Nyanyi Sama-sama',html:function(){
  return '<div class="pagehead"><span class="eyebrow">Halaman 7</span><h1>Jom Nyanyi Sama-sama</h1><p>Lagu: “Jom Jaga Alam”. Baca liriknya dan nyanyi dengan kuat.</p></div><div class="stack"><div class="lyr">'+
- '<div class="card"><span class="tag">Rangkap 1</span><p>Jom kawan-kawan menanam pokok,<br>Menyiram bunga agar tidak layu,<br>Mengutip sampah di taman kita,<br>Menjaga alam tanggungjawab semua.</p></div>'+
- '<div class="card"><span class="tag">Rangkap 2</span><p>Mengasingkan sisa, mengitar semula,<br>Menutup paip, menjimatkan air,<br>Membersihkan sungai, melindungi haiwan,<br>Bumi yang bersih hidup sejahtera.</p></div>'+
- '<div class="card chorus"><span class="tag">Korus</span><p>Menanam, menyiram, menjaga alam,<br>Mengutip sampah bersama-sama,<br>Kitar semula, selamatkan bumi,<br>Jadi Penjaga Alam Cilik!</p></div></div>'+
+ '<div class="card"><span class="tag">Rangkap 1</span><p>Mari kawan, mari semua,<br>Jaga alam tanggungjawab kita,<br>Menyiram pokok setiap masa,<br>Pokok menghijau, udara selesa!</p></div>'+
+'<div class="card"><span class="tag">Rangkap 2</span><p>Menanam pokok di tepi laman,<br>Mengutip sampah jangan dilupakan,<br>Menyapu daun di halaman,<br>Alam bersih jadi kebanggaan!</p></div>'+
+'<div class="card"><span class="tag">Korus</span><p>Jom, jom, jom kita lakukan,<br>Membersihkan kawasan persekitaran,<br>Jom, jom, jom bersama-sama,<br>Sayangi bumi kita semua!</p></div>'+
  '<div class="card stack"><h3>Rakaman lagu</h3><div id="songBox">'+songBoxHTML()+'</div></div>'+
  '<div class="card stack"><h3>Video Jom Nyanyi</h3><div class="vid"><video id="songVid" controls playsinline preload="metadata" aria-label="Video Jom Nyanyi"><source src="media/jom-nyanyi.mp4" type="video/mp4">Pelayar ini tidak menyokong video.</video></div>'+
  '<div id="vidMsg" class="note warn hide" role="status">Video tidak dapat dimuatkan di sini. Buka video melalui pautan Google Drive di bawah.</div>'+
